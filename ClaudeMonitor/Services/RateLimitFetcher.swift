@@ -60,9 +60,9 @@ final class RateLimitFetcher {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-        request.setValue(token, forHTTPHeaderField: "x-api-key")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
+        request.setValue("oauth-2025-04-20", forHTTPHeaderField: "anthropic-beta")
         request.timeoutInterval = 10
 
         let body: [String: Any] = [

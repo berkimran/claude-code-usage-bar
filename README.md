@@ -5,6 +5,12 @@ Claude Code API kullanım limitlerini macOS menu bar'da gerçek zamanlı göster
 ![macOS 13+](https://img.shields.io/badge/macOS-13%2B-blue)
 ![Swift](https://img.shields.io/badge/Swift-5.9-orange)
 
+## Ekran Görüntüsü
+
+<p align="center">
+  <img src="screenshot.png" alt="Claude Code Usage Bar" width="320">
+</p>
+
 ## Özellikler
 
 - **Menu Bar Göstergesi**: 5 saatlik kullanım yüzdesi ve aktif session maliyetini menu bar'da gösterir

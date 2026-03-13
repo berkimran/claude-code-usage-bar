@@ -82,7 +82,15 @@ final class RateLimitFetcher {
         do {
             let (_, response) = try await session.data(for: request)
             guard let httpResponse = response as? HTTPURLResponse else { return nil }
-            if httpResponse.statusCode != 200 {
+            if httpResponse.statusCode == 401 {
+                writeLog("ERROR HTTP 401 — reloading token from keychain")
+                loadToken()
+                if let newToken = accessToken, newToken != token {
+                    writeLog("Token refreshed, retrying")
+                    return await doFetch(token: newToken)
+                }
+                writeLog("ERROR token unchanged after reload, still 401")
+            } else if httpResponse.statusCode != 200 {
                 writeLog("ERROR HTTP \(httpResponse.statusCode)")
             }
             let info = parseHeaders(httpResponse)

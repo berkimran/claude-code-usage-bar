@@ -5,6 +5,8 @@ final class RateLimitFetcher {
     private var accessToken: String?
     private var lastFetchTime: Date = .distantPast
     private let minimumFetchInterval: TimeInterval = 60
+    private let logFile: URL = FileManager.default.homeDirectoryForCurrentUser
+        .appendingPathComponent(".claude/claude-monitor.log")
 
     private lazy var session: URLSession = {
         URLSession(configuration: .ephemeral)
@@ -20,7 +22,10 @@ final class RateLimitFetcher {
         }
 
         if accessToken == nil { loadToken() }
-        guard let token = accessToken else { return nil }
+        guard let token = accessToken else {
+            writeLog("ERROR no credentials in keychain")
+            return nil
+        }
 
         lastFetchTime = Date()
         return await doFetch(token: token)
@@ -77,9 +82,37 @@ final class RateLimitFetcher {
         do {
             let (_, response) = try await session.data(for: request)
             guard let httpResponse = response as? HTTPURLResponse else { return nil }
-            return parseHeaders(httpResponse)
+            if httpResponse.statusCode != 200 {
+                writeLog("ERROR HTTP \(httpResponse.statusCode)")
+            }
+            let info = parseHeaders(httpResponse)
+            writeLog("OK 5h=\(String(format: "%.1f%%", info.primaryPercentage)) 7d=\(String(format: "%.1f%%", info.weeklyPercentage)) status=\(info.status)")
+            return info
         } catch {
+            writeLog("ERROR \(error.localizedDescription)")
             return nil
+        }
+    }
+
+    private func writeLog(_ message: String) {
+        let fm = FileManager.default
+        let ts = ISO8601DateFormatter().string(from: Date())
+        let line = "\(ts) \(message)\n"
+        guard let data = line.data(using: .utf8) else { return }
+
+        if fm.fileExists(atPath: logFile.path) {
+            // Truncate if over 512KB
+            if let attrs = try? fm.attributesOfItem(atPath: logFile.path),
+               let size = attrs[.size] as? UInt64, size > 512_000 {
+                try? "".write(to: logFile, atomically: false, encoding: .utf8)
+            }
+            if let handle = try? FileHandle(forWritingTo: logFile) {
+                handle.seekToEndOfFile()
+                handle.write(data)
+                handle.closeFile()
+            }
+        } else {
+            fm.createFile(atPath: logFile.path, contents: data)
         }
     }
 
